@@ -9,7 +9,7 @@ window.requestAnimFrame = (function(){
           }; 
 })(); 
 
-var Vector = function(){
+var Vector2 = function(){
   this.x = arguments[0];
   this.y = arguments[1];
   this.length = null;
@@ -19,6 +19,11 @@ var Vector = function(){
                             Math.pow(this.y, 2))
     this.x = this.x/this.length;
     this.y = this.y/this.length;
+  };
+
+  this.distance = function(vector){
+    return Math.sqrt(Math.pow(this.x - vector.x, 2) + 
+                     Math.pow(this.y - vector.y, 2));
   };
 };
 
@@ -30,21 +35,21 @@ var missileCommand = (function (){
     this.color = "white";
     this.startLocation = startLocation;
     this.destination = destination;
-    this.x = startLocation[0];
-    this.y = startLocation[1];
+    this.x = startLocation.x;
+    this.y = startLocation.y;
     this.alive = true;
     this.speed = speed || 600;
     
 
-    this.directionVector = new Vector( this.x - destination[0], 
-                                       this.y - destination[1]);
+    this.directionVector = new Vector2( this.x - destination.x, 
+                                        this.y - destination.y);
     this.directionVector.normalize();
 
 
     this.update = function(deltaTime) {
       this.x -= this.directionVector.x * this.speed * deltaTime.seconds;
       this.y -= this.directionVector.y * this.speed * deltaTime.seconds;
-     if(this.y < this.destination[1]){ //only check if above destinaion as we don't 
+     if(this.y < this.destination.y){ //only check if above destinaion as we don't 
       this.alive = false;              //know what side we started on
       
      };
@@ -58,17 +63,22 @@ var missileCommand = (function (){
       c.fill();
     };
 
-    this.isAlive = function(){
+    this.isAlive = function() {
       return this.alive;
     };
+
+    this.location = function() {
+      return new Vector2(this.x, this.y);
+    }
 
   };
 
   var Explosion = function(location, startRadius, maxRadius, explosionSpeed) {
     this.radius = startRadius || 2;
     this.maxRadius = maxRadius || 20;
-    this.x = location[0];
-    this.y = location[1];
+    this.location = location;
+    this.x = location.x;
+    this.y = location.y;
     this.speed = explosionSpeed || 20;
     this.alive = true;
 
@@ -93,6 +103,16 @@ var missileCommand = (function (){
       return this.alive;
     };
 
+    this.hit = function(vector) {
+      if(this.location.distance(vector) < this.radius){
+        console.log('hit');
+        return true;
+      } else {
+        console.log('not hit')
+        return false;
+      }
+    };
+
   };
 
   return { //missileCommand
@@ -107,8 +127,8 @@ var loaded = function(){
   var c = canvas.getContext('2d'); 
 
   var lastUpdate;
-  var missl = new missileCommand.Missile([400,550], [100,200]);
-  var explosion = new missileCommand.Explosion([300, 300]);
+  var missl = new missileCommand.Missile(new Vector2(400,550), new Vector2(100,200));
+  var explosion = new missileCommand.Explosion(new Vector2(100, 500));
 
   function loop(){
     window.requestAnimFrame(loop);
@@ -123,13 +143,14 @@ var loaded = function(){
       missl.draw();
 
     } else {
-      missl = new missileCommand.Missile([Math.random() * 450,550], [50,200]);
+      missl = new missileCommand.Missile(new Vector2(Math.random() * 450, 550), new Vector2(50,200));
     }
     if (explosion.isAlive() === true){
       explosion.update(deltaTime);
       explosion.draw();
+      explosion.hit(missl.location());
     } else {
-      explosion = new missileCommand.Explosion([300, 300]);
+      explosion = new missileCommand.Explosion(new Vector2(100, 500));
     }
 
     lastUpdate = now;
