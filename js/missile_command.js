@@ -279,46 +279,5 @@ var missileCommand = (function (){
 
 })();
 
-var loaded = function(){
-  var canvas = document.getElementById('canvas'); 
-  var c = canvas.getContext('2d'); 
-
-  var lastUpdate;
-
-  var missl = new missileCommand.Missile(new Vector2(400,550), new Vector2(100,200));
-  var explosion = new missileCommand.Explosion(new Vector2(100, 500));
-  var bomb = new missileCommand.Bomb(new Vector2(100, 0), new Vector2(200, 550));
-
-  function loop(){
-    window.requestAnimFrame(loop);
-    var now = new Date().getTime()
-    var time = now - (lastUpdate || now);
-    var deltaTime = {time: time, seconds: time/1000 }
-    c.fillStyle = "black";
-    c.fillRect(0, 0, canvas.width, canvas.height);
-
-    if (missl.isAlive() === true){
-      missl.update(deltaTime);
-      missl.draw();
-
-    } else {
-      missl = new missileCommand.Missile(new Vector2(Math.random() * 450, 550), new Vector2(50,200));
-    }
-    if (explosion.isAlive() === true){
-      explosion.update(deltaTime);
-      explosion.draw();
-      explosion.hit(missl.location());
-    } else {
-      explosion = new missileCommand.Explosion(new Vector2(100, 500));
-    }
-
-    bomb.update(deltaTime);
-    bomb.draw();
-
-    lastUpdate = now;
-  };
-
-  window.requestAnimFrame(loop);
-};
 
 $(document).ready(missileCommand.start());
