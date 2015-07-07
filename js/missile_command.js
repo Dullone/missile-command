@@ -69,7 +69,7 @@ var missileCommand = (function (){
 
     this.kill = function() {
       this.alive = false;
-      return new explosion(new Vector2(this.x, this.y));
+      return new Explosion(new Vector2(this.x, this.y));
     };
 
     this.location = function() {
@@ -84,7 +84,7 @@ var missileCommand = (function (){
     this.location = location;
     this.x = location.x;
     this.y = location.y;
-    this.speed = explosionSpeed || 20;
+    this.speed = explosionSpeed || 65;
     this.alive = true;
 
     this.update = function(deltaTime) {
@@ -182,7 +182,7 @@ var missileCommand = (function (){
     this.lastUpdate;
     this.lastBomb     = 1000;
     this.bombsToAdd   = 1;
-    this.bombInterval = 1;
+    this.bombInterval = 2;
     this.gameRunnning = true;
 
     this.run = function() {
@@ -210,9 +210,9 @@ var missileCommand = (function (){
       for(var idx = this.missiles.length - 1; idx >= 0; idx--) {
         this.missiles[idx].update(deltaTime);
         this.missiles[idx].draw();
-        if(!this.missiles.isAlive()) {
+        if(!this.missiles[idx].isAlive()) {
           var gameObject = this.missiles.splice(idx, 1);
-          var returnedObject = gameObject.kill();
+          var returnedObject = gameObject[0].kill();
           if(returnedObject) {
             this.addExplosion(returnedObject);
           }
@@ -223,7 +223,7 @@ var missileCommand = (function (){
         this.explosions[idx].update(deltaTime);
         this.explosions[idx].draw();
         for (var i = 0; i < this.bombs.length; i++) {
-          if(this.explosions[idx].hit(this.bombs[i].location)) {
+          if(this.explosions[idx].hit(this.bombs[i].location())) {
             this.addExplosion(this.bombs[i].kill());
             this.bombs.splice(i, 1);
           }
@@ -245,7 +245,6 @@ var missileCommand = (function (){
         };
       }
 
-      //getInput();
     };
 
     this.createBombs = function(deltaTime) {
@@ -265,11 +264,18 @@ var missileCommand = (function (){
         this.explosions.push(explosion);
       }
     };
+
+    this.mouseClick = function(eventData) {
+      this.missiles.push(new Missile(new Vector2(300, 550), 
+                         new Vector2(eventData.layerX, eventData.layerY)));
+      console.log(eventData);
+    };
   };
 
   var game;
   var start = function() {
     game = new Game();
+    canvas.addEventListener("mousedown", game.mouseClick.bind(game));
     game.run();
   };
 
