@@ -182,11 +182,14 @@ var missileCommand = (function (){
     this.bombs        = [];
     this.explosions   = [];
     this.score        = 0;
+    this.missed       = 0;
 
     this.lastUpdate;
     this.lastBomb     = 1000;
     this.bombsToAdd   = 1;
     this.bombInterval = 2;
+    this.lastMissile  = .5;
+    this.missileInterval = .5;
     this.gameRunnning = true;
 
     this.run = function() {
@@ -204,15 +207,32 @@ var missileCommand = (function (){
     };
 
     this.update = function(deltaTime) {
+      if(this.lastMissile < this.missileInterval){
+        this.lastMissile += deltaTime.seconds;
+      } else {
+        this.lastMissile = .5;
+      }
       //paint background
       c.fillStyle = "black";
       c.fillRect(0, 0, canvas.width, canvas.height);
       //paint ground
       c.drawImage(ground, 0, 550);
       //score
-      c.fillStyle = "#B20000";
+      c.fillStyle = "#003D14";
       c.font = "bold 10pt Courier";
-      c.fillText("score: " + this.score, 450, 580);
+      c.fillText("SCORE: " + this.score, 450, 580);
+      //missed missiles
+      c.fillText("MISSED: " + this.missed, 50, 580);
+      //next
+      if(this.lastMissile < this.missileInterval){
+        console.log( (this.lastMissile - this.missileInterval)/this.missileInterval * 50)
+        c.globalAlpha = 0.6;
+        c.fillStyle = "black";
+        c.fillRect(285, 600 - 
+            ((this.missileInterval - this.lastMissile)/this.missileInterval) * 50,
+            24, 600);
+        c.globalAlpha = 1;
+      }
 
       this.createBombs(deltaTime);
 
@@ -252,6 +272,8 @@ var missileCommand = (function (){
           var returnedObject = gameObject[0].kill();
           if(returnedObject) {
             this.addExplosion(returnedObject);
+          } else {
+            ++this.missed;
           }
         };
       }
@@ -277,17 +299,32 @@ var missileCommand = (function (){
     };
 
     this.mouseClick = function(eventData) {
-      this.missiles.push(new Missile(new Vector2(298, 550), 
-                         new Vector2(eventData.layerX, eventData.layerY)));
-      console.log(eventData);
+      if(this.lastMissile >= this.missileInterval){
+        this.missiles.push(new Missile(new Vector2(298, 550), 
+                           new Vector2(eventData.layerX, eventData.layerY)));
+        this.lastMissile = 0;
+      }
     };
   };
 
   var game;
+  var clickHandler;
   var start = function() {
-    game = new Game();
-    canvas.addEventListener("mousedown", game.mouseClick.bind(game));
-    game.run();
+
+    function newGame() {
+      if(clickHandler){
+        canvas.removeEventListener("mousedown", clickHandler);
+      }
+
+      game = new Game();
+      clickHandler = game.mouseClick.bind(game);
+      canvas.addEventListener("mousedown", clickHandler);
+      game.run();
+    }
+
+    $('#reset').click(newGame);
+
+    newGame();
   };
 
   return { //missileCommand

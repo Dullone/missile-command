@@ -1,3 +1,24 @@
+*{
+	margin: 0;
+	padding: 0;
+}
 .container{
-	margin: 50px;
+	margin: 40px;
+}
+
+#reset{
+	background-color: #460C0C;
+	border-radius: 3px;
+	display: inline-block;
+	text-align: center;
+	width: 600px;
+}
+#reset-button{
+	width: 600px;
+	margin-top: -4px;
+}
+#reset-button a{
+	text-decoration: none;
+	color: #aaa;
+	padding: 4px 0; 
 }
