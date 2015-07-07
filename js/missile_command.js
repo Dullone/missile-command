@@ -30,6 +30,8 @@ var Vector2 = function(){
 var missileCommand = (function (){
   var canvas = document.getElementById('canvas'); 
   var c = canvas.getContext('2d');
+  var ground = new Image();
+  ground.src = "img/ground1.png";
 
   var Missile = function(startLocation, destination, speed) {
     this.color = "white";
@@ -164,8 +166,10 @@ var missileCommand = (function (){
     };
 
     this.kill = function() {
-      this.alive = false;
-      return new Explosion(new Vector2(this.x, this.y));
+      if(this.alive){
+        this.alive = false;
+        return new Explosion(new Vector2(this.x, this.y));
+      }
     };
 
     this.location = function() {
@@ -203,6 +207,12 @@ var missileCommand = (function (){
       //paint background
       c.fillStyle = "black";
       c.fillRect(0, 0, canvas.width, canvas.height);
+      //paint ground
+      c.drawImage(ground, 0, 550);
+      //score
+      c.fillStyle = "#B20000";
+      c.font = "bold 10pt Courier";
+      c.fillText("score: " + this.score, 450, 580);
 
       this.createBombs(deltaTime);
 
@@ -224,6 +234,7 @@ var missileCommand = (function (){
         this.explosions[idx].draw();
         for (var i = 0; i < this.bombs.length; i++) {
           if(this.explosions[idx].hit(this.bombs[i].location())) {
+            this.score += 10;
             this.addExplosion(this.bombs[i].kill());
             this.bombs.splice(i, 1);
           }
@@ -266,7 +277,7 @@ var missileCommand = (function (){
     };
 
     this.mouseClick = function(eventData) {
-      this.missiles.push(new Missile(new Vector2(300, 550), 
+      this.missiles.push(new Missile(new Vector2(298, 550), 
                          new Vector2(eventData.layerX, eventData.layerY)));
       console.log(eventData);
     };
