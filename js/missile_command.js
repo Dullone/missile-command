@@ -67,6 +67,11 @@ var missileCommand = (function (){
       return this.alive;
     };
 
+    this.kill = function() {
+      this.alive = false;
+      return new explosion(new Vector2(this.x, this.y));
+    };
+
     this.location = function() {
       return new Vector2(this.x, this.y);
     }
@@ -74,8 +79,8 @@ var missileCommand = (function (){
   };
 
   var Explosion = function(location, startRadius, maxRadius, explosionSpeed) {
-    this.radius = startRadius || 2;
-    this.maxRadius = maxRadius || 20;
+    this.radius = startRadius || 5;
+    this.maxRadius = maxRadius || 27;
     this.location = location;
     this.x = location.x;
     this.y = location.y;
@@ -91,7 +96,7 @@ var missileCommand = (function (){
       //TODO check collision
     };
 
-    this.draw = function(){
+    this.draw = function() {
       c.beginPath();
       c.arc(this.x, this.y, this.radius, 0, Math.PI*2);
       c.closePath();
@@ -99,25 +104,177 @@ var missileCommand = (function (){
       c.fill();
     };
 
-    this.isAlive = function(){
+    this.isAlive = function() {
       return this.alive;
+    };
+
+    this.kill = function() {
+      this.alvine = false;
     };
 
     this.hit = function(vector) {
       if(this.location.distance(vector) < this.radius){
-        console.log('hit');
         return true;
       } else {
-        console.log('not hit')
         return false;
       }
     };
 
   };
 
+  var Bomb = function(startLocation, endLocation, speed) {
+    this.speed = speed || 50;
+    this.startLocation = startLocation;
+    this.endLocation = endLocation;
+    this.x = startLocation.x;
+    this.y = startLocation.y;
+    this.alive = true;
+
+    this.directionVector = new Vector2(startLocation.x - endLocation.x, 
+                                       startLocation.y - endLocation.y);
+    this.directionVector.normalize();
+
+    this.update = function(deltaTime) {
+      this.x -= this.directionVector.x * this.speed * deltaTime.seconds;
+      this.y -= this.directionVector.y * this.speed * deltaTime.seconds;
+      if(this.y > this.endLocation.y) {
+        this.alive = false;
+      }
+    };
+
+    this.draw = function() {
+      if(this.alive) {
+        //bomb
+        c.beginPath();
+        c.arc(this.x, this.y, 2, 0, Math.PI*2);
+        c.closePath();
+        c.fillStyle = "yellow";
+        c.fill();
+        //path
+        c.beginPath();
+        c.moveTo(startLocation.x, startLocation.y);
+        c.lineTo(this.x, this.y);
+        c.strokeStyle = "#4DB8B8";
+        c.stroke();
+      }
+    };
+
+    this.isAlive = function() {
+      return this.alive;
+    };
+
+    this.kill = function() {
+      this.alive = false;
+      return new Explosion(new Vector2(this.x, this.y));
+    };
+
+    this.location = function() {
+      return new Vector2(this.x, this.y);
+    };
+  };
+
+  var Game = function() {
+    this.missiles     = [];
+    this.bombs        = [];
+    this.explosions   = [];
+    this.score        = 0;
+
+    this.lastUpdate;
+    this.lastBomb     = 1000;
+    this.bombsToAdd   = 1;
+    this.bombInterval = 1;
+    this.gameRunnning = true;
+
+    this.run = function() {
+      window.requestAnimFrame(gameLoop.bind(this));
+
+      function gameLoop() {
+        window.requestAnimFrame(gameLoop.bind(this));
+        var now = new Date().getTime()
+        var time = now - (this.lastUpdate || now);
+        var deltaTime = {time: time, seconds: time/1000 }
+        this.update(deltaTime);
+        this.lastUpdate = now;
+      };
+
+    };
+
+    this.update = function(deltaTime) {
+      //paint background
+      c.fillStyle = "black";
+      c.fillRect(0, 0, canvas.width, canvas.height);
+
+      this.createBombs(deltaTime);
+
+      //go backward so anything added or removed will not effect loop
+      for(var idx = this.missiles.length - 1; idx >= 0; idx--) {
+        this.missiles[idx].update(deltaTime);
+        this.missiles[idx].draw();
+        if(!this.missiles.isAlive()) {
+          var gameObject = this.missiles.splice(idx, 1);
+          var returnedObject = gameObject.kill();
+          if(returnedObject) {
+            this.addExplosion(returnedObject);
+          }
+        };
+      }
+
+      for(var idx = this.explosions.length - 1; idx >= 0; idx--) {
+        this.explosions[idx].update(deltaTime);
+        this.explosions[idx].draw();
+        for (var i = 0; i < this.bombs.length; i++) {
+          if(this.explosions[idx].hit(this.bombs[i].location)) {
+            this.addExplosion(this.bombs[i].kill());
+            this.bombs.splice(i, 1);
+          }
+        }
+        if(!this.explosions[idx].isAlive()) {
+          this.explosions.splice(idx, 1);
+        }
+      }
+
+      for(var idx = this.bombs.length - 1; idx >= 0; idx--) {
+        this.bombs[idx].update(deltaTime);
+        this.bombs[idx].draw();
+        if(!this.bombs[idx].isAlive()) {
+          var gameObject = this.bombs.splice(idx, 1);
+          var returnedObject = gameObject[0].kill();
+          if(returnedObject) {
+            this.addExplosion(returnedObject);
+          }
+        };
+      }
+
+      //getInput();
+    };
+
+    this.createBombs = function(deltaTime) {
+      this.lastBomb += deltaTime.seconds;
+      if(this.lastBomb > this.bombInterval) {
+        for(var i = 0; i <= this.bombsToAdd; i++) {
+          var startLoc = new Vector2(Math.random() * (canvas.width - 4), 0);
+          var endLoc   = new Vector2(Math.random() * (canvas.width - 4), 550);
+          this.bombs.push(new Bomb(startLoc, endLoc))
+          this.lastBomb = 0;
+        }
+      }
+    };
+
+    this.addExplosion = function(explosion) {
+      if(explosion) {
+        this.explosions.push(explosion);
+      }
+    };
+  };
+
+  var game;
+  var start = function() {
+    game = new Game();
+    game.run();
+  };
+
   return { //missileCommand
-    Missile: Missile,
-    Explosion, Explosion,
+    start: start,
   };
 
 })();
@@ -127,8 +284,10 @@ var loaded = function(){
   var c = canvas.getContext('2d'); 
 
   var lastUpdate;
+
   var missl = new missileCommand.Missile(new Vector2(400,550), new Vector2(100,200));
   var explosion = new missileCommand.Explosion(new Vector2(100, 500));
+  var bomb = new missileCommand.Bomb(new Vector2(100, 0), new Vector2(200, 550));
 
   function loop(){
     window.requestAnimFrame(loop);
@@ -153,10 +312,13 @@ var loaded = function(){
       explosion = new missileCommand.Explosion(new Vector2(100, 500));
     }
 
+    bomb.update(deltaTime);
+    bomb.draw();
+
     lastUpdate = now;
   };
 
   window.requestAnimFrame(loop);
 };
 
-$(document).ready(loaded);
+$(document).ready(missileCommand.start());
